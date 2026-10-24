@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#090a0c" />
+    <title>OR-TXCORE — Command Center</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="explain.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
+    <main class="shell">
+      <header class="topbar">
+        <div class="brand"><span class="brand-mark">OR</span><span>TXCORE</span><small>COMMAND CENTER</small></div>
+        <div class="environment" id="environment"><i></i>CONNECTING</div>
+        <div class="clock" id="clock"></div>
+      </header>
+      <section class="hero">
+        <div><p class="eyebrow">OPERATIONS OVERVIEW</p><h1>Payment command,<br /><em>with evidence.</em></h1><p class="lede">Entenda cada pagamento, sua decisão de risco e até onde o evento já percorreu. Nenhum indicador fica sem fonte ou próximo passo.</p></div>
+        <div class="hero-actions"><button class="secondary" id="pause">Pausar fluxo</button><button class="primary" id="simulate">Simular transferência</button></div>
+      </section>
+      <section class="metrics" aria-label="Operational metrics">
+        <article class="metric"><p>Volume liquidado <button class="hint" data-explain="volume">i</button></p><strong id="volume">R$ 1.842.390</strong><span><b>DEMO</b> soma de pagamentos POSTED na amostra</span></article>
+        <article class="metric"><p>Pagamentos aprovados <button class="hint" data-explain="authorized">i</button></p><strong id="authorized">2.841</strong><span class="good">DEMO · inclui somente POSTED</span></article>
+        <article class="metric"><p>Em revisão <button class="hint" data-explain="review">i</button></p><strong id="review">07</strong><span class="warn">ação humana necessária antes de postar</span></article>
+        <article class="metric"><p>Contenção de locks <button class="hint" data-explain="locks">i</button></p><strong id="locks">0,8 ms</strong><span class="good">DEMO · p95 de espera no PostgreSQL</span></article>
+      </section>
+      <section class="layout">
+        <article class="panel activity"><div class="panel-head"><div><p class="eyebrow">LIVE LEDGER</p><h2>Fluxo de transações</h2><p class="caption">Selecione uma linha para rastrear sua decisão e eventos.</p></div><button class="icon-button" id="refresh" aria-label="Atualizar">↻</button></div><div class="table-head"><span>PAGAMENTO</span><span>STATUS</span><span>RISCO</span><span>VALOR</span></div><div id="transactions" class="transactions"></div></article>
+        <aside class="right-rail">
+          <article class="panel risk-card"><div class="panel-head"><div><p class="eyebrow">FRAUDSHIELD</p><h2>Postura de risco</h2></div><span class="pill">POLÍTICA ATIVA</span></div><div class="risk-score"><div class="score-ring"><strong id="riskScore">18</strong><span>/ 100</span></div><div><b>Risco operacional baixo</b><p>Regras determinísticas são a decisão final.</p></div></div><div class="bar"><span style="width:18%"></span></div><div class="reasons"><div><span class="dot cyan"></span>Velocidade estável <b>0 alertas</b></div><div><span class="dot amber"></span>Novos beneficiários <b>4 observados</b></div><div><span class="dot purple"></span>Deriva de ML <b>normal</b></div></div></article>
+          <article class="panel services"><div class="panel-head"><div><p class="eyebrow">SERVICE CHAIN</p><h2>Saúde e fonte</h2></div><span id="serviceSummary" class="warn">verificando</span></div><div id="serviceList"></div></article>
+        </aside>
+      </section>
+      <section class="bottom-grid">
+        <article class="panel"><div class="panel-head"><div><p class="eyebrow">CONSISTENCY</p><h2>Ledger invariants</h2></div><span class="verified">● VERIFIED</span></div><div class="invariants"><div><b>0</b><span>unbalanced journals</span></div><div><b>0</b><span>duplicate idempotency records</span></div><div><b>100%</b><span>outbox correlation coverage</span></div></div></article>
+        <article class="panel"><div class="panel-head"><div><p class="eyebrow">EVENT INFRASTRUCTURE</p><h2>Outbox pipeline</h2></div><span class="good">steady</span></div><div class="pipeline"><span>API</span><i></i><span>POSTGRES</span><i></i><span>OUTBOX</span><i></i><span>NATS</span><i></i><span>CONSUMER</span></div><p class="caption">At-least-once delivery · consumer deduplication · aggregate ordering</p></article>
+      </section>
+      <section class="bottom-grid explain-grid">
+        <article class="panel"><div class="panel-head"><div><p class="eyebrow">EVENT TRACE</p><h2>O que aconteceu agora</h2></div><span id="traceMode" class="pill">AMOSTRA</span></div><ol class="event-trace" id="eventTrace"></ol></article>
+        <article class="panel"><div class="panel-head"><div><p class="eyebrow">OPERATOR GUIDE</p><h2>O que podemos otimizar</h2></div></div><div class="actions"><div><b>REVIEW crescendo?</b><span>Revise reason codes, limiares e tempo de fila antes de alterar regras.</span></div><div><b>Outbox pendente?</b><span>Verifique worker, confirmação JetStream e redelivery antes de reprocessar.</span></div><div><b>Lock p95 elevado?</b><span>Investigue transferências concorrentes e queries; não remova os locks financeiros.</span></div></div></article>
+      </section>
+      <section class="finance-controls" aria-label="Finance and controls">
+        <div class="section-title"><div><p class="eyebrow">FINANCE &amp; CONTROLS</p><h2>Controles financeiros sem ampliar o escopo de pagamentos</h2></div><span class="pill" id="controlsSource">CENÁRIO DEMONSTRATIVO</span></div>
+        <div class="control-grid">
+          <article class="panel"><p class="eyebrow">CONCILIAÇÃO</p><h3>Fechamento operacional</h3><div class="control-kpi"><strong id="reconciliationStatus">0 divergências</strong><span>Journals e eventos conciliados</span></div><ul class="control-list"><li><span>Journals no ledger</span><b id="ledgerBalance">balanceados</b></li><li><span>Outbox pendente</span><b id="outboxControl">0 eventos</b></li><li><span>Próximo corte</span><b>18:00 BRT</b></li></ul><p class="caption">Não substitui uma conciliação bancária externa.</p></article>
+          <article class="panel"><p class="eyebrow">COMPLIANCE</p><h3>Evidência e rastreabilidade</h3><div class="control-kpi"><strong id="auditCount">100%</strong><span>Pagamentos com correlation ID</span></div><ul class="control-list"><li><span>Decisões REVIEW</span><b id="reviewControl">07 em fila</b></li><li><span>Eventos auditáveis</span><b id="eventControl">amostra local</b></li><li><span>Dados sensíveis</span><b>não armazenados</b></li></ul><p class="caption">Trilha para auditoria; não é aconselhamento regulatório.</p></article>
+          <article class="panel"><p class="eyebrow">CONTROLADORIA</p><h3>Visão gerencial</h3><div class="control-kpi"><strong>R$ 0,18</strong><span>Custo operacional simulado / pagamento</span></div><ul class="control-list"><li><span>Volume processado</span><b id="volumeControl">R$ 1,8 mi</b></li><li><span>Exceções financeiras</span><b id="exceptionsControl">07 REVIEW</b></li><li><span>Base contábil</span><b>partidas dobradas</b></li></ul><p class="caption">Custos e metas são exemplos, não demonstrativos contábeis.</p></article>
+        </div>
+      </section>
+    </main>
+    <dialog id="detailDialog"><button id="closeDialog" aria-label="Fechar detalhes">×</button><p class="eyebrow">TRANSACTION EXPLAINER</p><h2 id="detailTitle">Pagamento</h2><div id="detailContent"></div></dialog>
+    <div class="toast" id="toast" role="status"></div>
+    <template id="row"><div class="transaction"><span class="payment"><b></b><span><strong></strong><small></small></span></span><span class="status"></span><span class="risk"></span><strong class="amount"></strong></div></template>
+    <script src="app.js"></script>
+  </body>
+</html>

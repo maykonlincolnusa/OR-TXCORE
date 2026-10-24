@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.core.errors import DomainError
 from app.core.security import require_admin
-from app.payments.models import Account, LedgerEntry, LedgerJournal, OutboxEvent, Payment, RiskAssessment
+from app.payments.models import Account, AuditEvent, LedgerEntry, LedgerJournal, OutboxEvent, Payment, RiskAssessment
 from app.payments.schemas import AccountCreate, BalanceCredit, TransferRequest
 from app.payments.service import PaymentService
 from app.fraud.client import FraudShieldClient
@@ -85,7 +85,10 @@ def operations_overview(db: Session = Depends(get_db)):
     posted_volume = db.scalar(select(func.coalesce(func.sum(Payment.amount_minor), 0)).where(Payment.status == "POSTED")) or 0
     review_count = db.scalar(select(func.count()).select_from(Payment).where(Payment.status == "PENDING")) or 0
     outbox_pending = db.scalar(select(func.count()).select_from(OutboxEvent).where(OutboxEvent.status == "PENDING")) or 0
+    journal_count = db.scalar(select(func.count()).select_from(LedgerJournal)) or 0
+    audit_count = db.scalar(select(func.count()).select_from(AuditEvent)) or 0
     recent = db.scalars(select(Payment).order_by(Payment.created_at.desc()).limit(10)).all()
     return {"source": "payment-core", "posted_count": posted_count, "posted_volume_minor": posted_volume,
             "review_count": review_count, "outbox_pending": outbox_pending,
+            "journal_count": journal_count, "audit_count": audit_count,
             "recent_payments": [payment_view(payment) for payment in recent]}
