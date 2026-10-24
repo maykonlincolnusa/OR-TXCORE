@@ -5,7 +5,8 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.core.errors import DomainError
-from app.fraud.service import DeterministicFraudEngine
+from app.core.config import settings
+from app.fraud.service import DeterministicFraudEngine, RiskDecision
 from app.payments.models import (Account, AuditEvent, IdempotencyRecord, LedgerEntry, LedgerJournal,
                                  OutboxEvent, Payment, PaymentAttempt, RiskAssessment)
 from app.shared.events import event_envelope
@@ -16,7 +17,7 @@ def request_digest(data: dict) -> str:
 
 
 class PaymentService:
-    def __init__(self, fraud: DeterministicFraudEngine | None = None):
+    def __init__(self, fraud: object | None = None):
         self.fraud = fraud or DeterministicFraudEngine()
 
     def transfer(self, db: Session, request: dict, idempotency_key: str) -> Payment:
@@ -51,7 +52,7 @@ class PaymentService:
         if source.currency != request["currency"] or destination.currency != request["currency"]:
             raise DomainError("CURRENCY_MISMATCH", "account and payment currency must match", 409)
 
-        decision = self.fraud.assess(request["amount_minor"])
+        decision = self._assess(request["amount_minor"])
         payment = Payment(source_account_id=source_id, destination_account_id=destination_id,
                           amount_minor=request["amount_minor"], currency=request["currency"],
                           status="PENDING" if decision.decision == "REVIEW" else decision.decision,
@@ -91,3 +92,12 @@ class PaymentService:
     def _outbox(db: Session, event_type: str, payment: Payment, payload: dict) -> None:
         db.add(OutboxEvent(aggregate_id=payment.id, event_type=event_type,
                            payload=event_envelope(event_type, payment.id, payload, payment.correlation_id)))
+
+    def _assess(self, amount_minor: int) -> RiskDecision:
+        try:
+            return self.fraud.assess(amount_minor)
+        except Exception:
+            # A risk dependency outage cannot authorise money movement.
+            fallback = settings.fraudshield_unavailable_policy.upper()
+            return RiskDecision(100, fallback if fallback == "DENY" else "REVIEW",
+                                ["FRAUDSHIELD_UNAVAILABLE"])

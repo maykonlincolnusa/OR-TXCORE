@@ -1,16 +1,23 @@
 from uuid import UUID
 from fastapi import Depends, FastAPI, Header, HTTPException, Response
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.core.errors import DomainError
 from app.core.security import require_admin
-from app.payments.models import Account, LedgerEntry, LedgerJournal, Payment, RiskAssessment
+from app.payments.models import Account, LedgerEntry, LedgerJournal, OutboxEvent, Payment, RiskAssessment
 from app.payments.schemas import AccountCreate, BalanceCredit, TransferRequest
 from app.payments.service import PaymentService
+from app.fraud.client import FraudShieldClient
+from app.core.config import settings
+from app.core.metrics import metrics_app, payment_latency, payment_requests
 
 app = FastAPI(title="OR-TXCORE", version="0.1.0")
+app.add_middleware(CORSMiddleware, allow_origins=["http://127.0.0.1:5500", "http://localhost:5500"],
+                   allow_methods=["GET"], allow_headers=["*"])
+app.mount("/metrics", metrics_app)
 
 def account_view(account: Account) -> dict:
     return {"id": str(account.id), "currency": account.currency,
@@ -45,11 +52,14 @@ def test_credit(account_id: UUID, body: BalanceCredit, _: None = Depends(require
 @app.post("/v1/payments/transfers", status_code=201)
 def transfer(body: TransferRequest, response: Response, idempotency_key: str = Header(..., alias="Idempotency-Key"), db: Session = Depends(get_db)):
     try:
-        payment = PaymentService().transfer(db, body.model_dump(mode="json"), idempotency_key)
+        with payment_latency.time():
+            fraud = FraudShieldClient() if settings.fraudshield_url else None
+            payment = PaymentService(fraud).transfer(db, body.model_dump(mode="json"), idempotency_key)
         db.commit()
     except Exception:
         db.rollback(); raise
     response.headers["Location"] = f"/v1/payments/{payment.id}"
+    payment_requests.labels(status=payment.status).inc()
     return payment_view(payment)
 
 @app.get("/v1/payments/{payment_id}")
@@ -67,3 +77,15 @@ def get_ledger(payment_id: UUID, db: Session = Depends(get_db)):
     entries = db.scalars(select(LedgerEntry).join(LedgerJournal).where(LedgerJournal.payment_id == payment_id)).all()
     return [{"id": str(e.id), "account_id": str(e.account_id), "direction": e.direction,
              "amount_minor": e.amount_minor, "currency": e.currency} for e in entries]
+
+@app.get("/v1/operations/overview")
+def operations_overview(db: Session = Depends(get_db)):
+    """Read model for the Command Center; never exposes ledger write access."""
+    posted_count = db.scalar(select(func.count()).select_from(Payment).where(Payment.status == "POSTED")) or 0
+    posted_volume = db.scalar(select(func.coalesce(func.sum(Payment.amount_minor), 0)).where(Payment.status == "POSTED")) or 0
+    review_count = db.scalar(select(func.count()).select_from(Payment).where(Payment.status == "PENDING")) or 0
+    outbox_pending = db.scalar(select(func.count()).select_from(OutboxEvent).where(OutboxEvent.status == "PENDING")) or 0
+    recent = db.scalars(select(Payment).order_by(Payment.created_at.desc()).limit(10)).all()
+    return {"source": "payment-core", "posted_count": posted_count, "posted_volume_minor": posted_volume,
+            "review_count": review_count, "outbox_pending": outbox_pending,
+            "recent_payments": [payment_view(payment) for payment in recent]}

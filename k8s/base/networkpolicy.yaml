@@ -1,0 +1,14 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: default-deny, namespace: or-txcore}
+spec: {podSelector: {}, policyTypes: [Ingress, Egress]}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: allow-payment-dependencies, namespace: or-txcore}
+spec:
+  podSelector: {matchLabels: {app: payment-core}}
+  policyTypes: [Egress]
+  egress:
+    - to: [{podSelector: {matchLabels: {app: postgres}}}, {podSelector: {matchLabels: {app: fraudshield-ml}}}]
+      ports: [{protocol: TCP, port: 5432}, {protocol: TCP, port: 8001}]

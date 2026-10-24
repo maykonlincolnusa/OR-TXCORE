@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: or-txcore-config, namespace: or-txcore}
+data:
+  APP_ENV: local
+  NATS_URL: nats://nats:4222
+  FRAUDSHIELD_URL: http://fraudshield-ml:8001
+  FRAUDSHIELD_UNAVAILABLE_POLICY: REVIEW
+---
+# Deliberately non-secret development placeholder. Provide real values through
+# your local secret manager or `kubectl create secret`; never commit them.
+apiVersion: v1
+kind: Secret
+metadata: {name: or-txcore-dev-placeholder, namespace: or-txcore}
+type: Opaque
+stringData:
+  ADMIN_API_KEY: change-me-before-any-shared-environment

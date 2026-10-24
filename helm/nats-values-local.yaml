@@ -1,0 +1,9 @@
+config:
+  jetstream:
+    enabled: true
+    fileStore:
+      enabled: true
+      pvc:
+        size: 1Gi
+natsBox:
+  enabled: true

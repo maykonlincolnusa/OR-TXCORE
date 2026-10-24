@@ -1,0 +1,7 @@
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  - config.yaml
+  - postgres.yaml
+  - services.yaml
+  - networkpolicy.yaml

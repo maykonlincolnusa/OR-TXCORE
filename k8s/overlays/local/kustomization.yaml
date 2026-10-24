@@ -1,0 +1,9 @@
+namespace: or-txcore
+resources: [../../base]
+images:
+  - name: or-txcore/payment-core
+    newName: or-txcore/payment-core
+    newTag: local
+  - name: or-txcore/fraudshield-ml
+    newName: or-txcore/fraudshield-ml
+    newTag: local

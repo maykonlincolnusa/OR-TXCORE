@@ -18,3 +18,26 @@ services:
     image: nats:2-alpine
     command: ["-js", "-m", "8222"]
     ports: ["4222:4222", "8222:8222"]
+  payment-core:
+    build: {context: ., dockerfile: services/payment-core/Dockerfile}
+    environment:
+      DATABASE_URL: postgresql+psycopg://ortxcore:ortxcore@postgres:5432/ortxcore
+      FRAUDSHIELD_URL: http://fraudshield-ml:8001
+    ports: ["8000:8000"]
+    depends_on: {postgres: {condition: service_healthy}, fraudshield-ml: {condition: service_started}}
+  fraudshield-ml:
+    build: {context: ., dockerfile: services/fraudshield-ml/Dockerfile}
+    ports: ["8001:8001"]
+  outbox-worker:
+    build: {context: ., dockerfile: services/outbox-worker/Dockerfile}
+    environment:
+      DATABASE_URL: postgresql+psycopg://ortxcore:ortxcore@postgres:5432/ortxcore
+      NATS_URL: nats://nats:4222
+    depends_on: {postgres: {condition: service_healthy}, nats: {condition: service_started}}
+  audit-service:
+    build: {context: ., dockerfile: services/audit-service/Dockerfile}
+    environment:
+      AUDIT_DATABASE_URL: postgresql+psycopg://ortxcore:ortxcore@postgres:5432/ortxcore_audit
+      NATS_URL: nats://nats:4222
+    ports: ["8002:8002"]
+    depends_on: {postgres: {condition: service_healthy}, nats: {condition: service_started}}
