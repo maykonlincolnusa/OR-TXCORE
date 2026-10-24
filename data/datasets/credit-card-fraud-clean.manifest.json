@@ -1,0 +1,9 @@
+{
+  "dataset_id": "MaxPrestige/credit-card-fraud-CLEAN",
+  "source_url": "https://huggingface.co/datasets/MaxPrestige/credit-card-fraud-CLEAN",
+  "local_filename": "data/external/credit-card-fraud-CLEAN.csv",
+  "sha256": "0a7a74e742e70de40972cb7f844b72bc10e53a4b30a347bdf35b2e419c7f017f",
+  "rows_excluding_header": 1048575,
+  "license_status": "other — local educational/research use only; review upstream terms before any redistribution",
+  "purpose": "offline fraud-model benchmark; never a source of production customer data"
+}
